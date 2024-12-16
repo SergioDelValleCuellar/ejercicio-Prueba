@@ -1,0 +1,1135 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-search.css">
+        <link rel="stylesheet" href="css/filter.css">
+<link rel="stylesheet" href="css/nouislider.min.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title>Ejercicio complemento "qgis2web"</title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/multi-style-layer.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.wms.js"></script>
+        <script src="js/leaflet-search.js"></script>
+        <script src="js/tailDT.js"></script>
+<script src="js/nouislider.min.js"></script>
+<script src="js/wNumb.js"></script>
+        <script src="data/Comunidades_1.js"></script>
+        <script src="data/ParquesNaturales_2.js"></script>
+        <script src="data/Rios_3.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+            highlightLayer.openPopup();
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        })
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+            if (bounds_group.getLayers().length) {
+                map.fitBounds(bounds_group.getBounds());
+            }
+            map.setMaxBounds(map.getBounds());
+        }
+        map.createPane('pane_Ortoimagen_0');
+        map.getPane('pane_Ortoimagen_0').style.zIndex = 400;
+        var layer_Ortoimagen_0 = L.WMS.layer("https://www.ign.es/wms-inspire/pnoa-ma", "OI.OrthoimageCoverage", {
+            pane: 'pane_Ortoimagen_0',
+            format: 'image/png',
+            uppercase: true,
+            transparent: true,
+            continuousWorld : true,
+            tiled: true,
+            info_format: 'text/html',
+            opacity: 1,
+            identify: false,
+            attribution: '',
+        });
+        map.addLayer(layer_Ortoimagen_0);
+        function pop_Comunidades_1(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Name'] !== null ? autolinker.link(feature.properties['Name'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['description'] !== null ? autolinker.link(feature.properties['description'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['timestamp'] !== null ? autolinker.link(feature.properties['timestamp'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['begin'] !== null ? autolinker.link(feature.properties['begin'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['end'] !== null ? autolinker.link(feature.properties['end'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['altitudeMode'] !== null ? autolinker.link(feature.properties['altitudeMode'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['tessellate'] !== null ? autolinker.link(feature.properties['tessellate'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['extrude'] !== null ? autolinker.link(feature.properties['extrude'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['visibility'] !== null ? autolinker.link(feature.properties['visibility'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['drawOrder'] !== null ? autolinker.link(feature.properties['drawOrder'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['icon'] !== null ? autolinker.link(feature.properties['icon'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['AREA'] !== null ? autolinker.link(feature.properties['AREA'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['PERIMETER'] !== null ? autolinker.link(feature.properties['PERIMETER'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['COMUNI_INE'] !== null ? autolinker.link(feature.properties['COMUNI_INE'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['COMUNIDAD'] !== null ? autolinker.link(feature.properties['COMUNIDAD'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Comunidades_1_0(feature) {
+            switch(String(feature.properties['COMUNIDAD'])) {
+                case 'ANDALUCIA':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(48,18,59,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'ARAGON':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(62,57,148,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'ASTURIAS':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(69,94,211,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'CANTABRIA':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(70,129,247,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'CASTILLA Y LEON':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(58,163,252,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'CASTILLA-LA MANCHA':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(35,196,227,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'CATALUÑA':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(24,222,192,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'CEUTA':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(45,240,157,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'COMUNIDAD BALEAR':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(92,252,112,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'COMUNIDAD CANARIA':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(144,255,72,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'EXTREMADURA':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(182,247,53,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'GALICIA':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(215,229,53,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'LA RIOJA':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(240,204,58,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'MADRID':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(253,174,53,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'MELILLA':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(252,136,37,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'NAVARRA':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(242,96,20,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'PAIS VALENCIANO':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(224,64,8,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'PAIS VASCO':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(197,38,3,0.4)',
+                interactive: true,
+            }
+                    break;
+                case 'REGION DE MURCIA':
+                    return {
+                pane: 'pane_Comunidades_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.4)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(162,18,1,0.4)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_Comunidades_1');
+        map.getPane('pane_Comunidades_1').style.zIndex = 401;
+        map.getPane('pane_Comunidades_1').style['mix-blend-mode'] = 'normal';
+        var layer_Comunidades_1 = new L.geoJson(json_Comunidades_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Comunidades_1',
+            layerName: 'layer_Comunidades_1',
+            pane: 'pane_Comunidades_1',
+            onEachFeature: pop_Comunidades_1,
+            style: style_Comunidades_1_0,
+        });
+        bounds_group.addLayer(layer_Comunidades_1);
+        map.addLayer(layer_Comunidades_1);
+        function pop_ParquesNaturales_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Name</th>\
+                        <td class="visible-with-data" id="Name">' + (feature.properties['Name'] !== null ? autolinker.link(feature.properties['Name'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['description'] !== null ? autolinker.link(feature.properties['description'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['timestamp'] !== null ? autolinker.link(feature.properties['timestamp'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['begin'] !== null ? autolinker.link(feature.properties['begin'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['end'] !== null ? autolinker.link(feature.properties['end'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['altitudeMode'] !== null ? autolinker.link(feature.properties['altitudeMode'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['tessellate'] !== null ? autolinker.link(feature.properties['tessellate'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['extrude'] !== null ? autolinker.link(feature.properties['extrude'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['visibility'] !== null ? autolinker.link(feature.properties['visibility'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['drawOrder'] !== null ? autolinker.link(feature.properties['drawOrder'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['icon'] !== null ? autolinker.link(feature.properties['icon'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SITECODE'] !== null ? autolinker.link(feature.properties['SITECODE'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SITE_DESIG'] !== null ? autolinker.link(feature.properties['SITE_DESIG'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['AREA_HA'] !== null ? autolinker.link(feature.properties['AREA_HA'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['YEAR'] !== null ? autolinker.link(feature.properties['YEAR'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CCAA'] !== null ? autolinker.link(feature.properties['CCAA'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ENP_ID'] !== null ? autolinker.link(feature.properties['ENP_ID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NOMBRE'] !== null ? autolinker.link(feature.properties['NOMBRE'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FIGURA_CCA'] !== null ? autolinker.link(feature.properties['FIGURA_CCA'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FIGURA_ASI'] !== null ? autolinker.link(feature.properties['FIGURA_ASI'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_ParquesNaturales_2_0() {
+            return {
+                pane: 'pane_ParquesNaturales_2',
+                interactive: true,
+            }
+        }
+        function style_ParquesNaturales_2_1() {
+            return {
+                pane: 'pane_ParquesNaturales_2',
+                opacity: 1,
+                color: 'rgba(56,128,54,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_ParquesNaturales_2');
+        map.getPane('pane_ParquesNaturales_2').style.zIndex = 402;
+        map.getPane('pane_ParquesNaturales_2').style['mix-blend-mode'] = 'normal';
+        var layer_ParquesNaturales_2 = new L.geoJson.multiStyle(json_ParquesNaturales_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_ParquesNaturales_2',
+            layerName: 'layer_ParquesNaturales_2',
+            pane: 'pane_ParquesNaturales_2',
+            onEachFeature: pop_ParquesNaturales_2,
+            styles: [style_ParquesNaturales_2_0,style_ParquesNaturales_2_1,]
+        });
+        bounds_group.addLayer(layer_ParquesNaturales_2);
+        map.addLayer(layer_ParquesNaturales_2);
+        function pop_Rios_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Texto'] !== null ? autolinker.link(feature.properties['Texto'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Longitud'] !== null ? autolinker.link(feature.properties['Longitud'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Categoria'] !== null ? autolinker.link(feature.properties['Categoria'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="Imagen"colspan="2"><strong>Foto</strong><br />' + (feature.properties['Imagen'] !== null ? '<img src="images/' + String(feature.properties['Imagen']).replace(/[\\\/:]/g, '_').trim() + '">' : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Leng'] !== null ? autolinker.link(feature.properties['Shape_Leng'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Nombre Rí'] !== null ? autolinker.link(feature.properties['Nombre Rí'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Rios_3_0() {
+            return {
+                pane: 'pane_Rios_3',
+                opacity: 1,
+                color: 'rgba(26,46,233,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Rios_3');
+        map.getPane('pane_Rios_3').style.zIndex = 403;
+        map.getPane('pane_Rios_3').style['mix-blend-mode'] = 'normal';
+        var layer_Rios_3 = new L.geoJson(json_Rios_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Rios_3',
+            layerName: 'layer_Rios_3',
+            pane: 'pane_Rios_3',
+            onEachFeature: pop_Rios_3,
+            style: style_Rios_3_0,
+        });
+        bounds_group.addLayer(layer_Rios_3);
+        map.addLayer(layer_Rios_3);
+        var overlaysTree = [
+            {label: '<img src="legend/Rios_3.png" /> Rios', layer: layer_Rios_3},
+        {label: '<b>ParquesNaturales</b>', selectAllCheckbox: true, children: [
+            {label: '<img src="legend/ParquesNaturales_2.png" /> ParquesNaturales', layer: layer_ParquesNaturales_2},]},
+        {label: '<b>Comunidades</b>', selectAllCheckbox: true, children: [
+            {label: 'Comunidades<br /><table><tr><td style="text-align: center;"><img src="legend/Comunidades_1_ANDALUCIA0.png" /></td><td>ANDALUCIA</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_ARAGON1.png" /></td><td>ARAGON</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_ASTURIAS2.png" /></td><td>ASTURIAS</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_CANTABRIA3.png" /></td><td>CANTABRIA</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_CASTILLAYLEON4.png" /></td><td>CASTILLA Y LEON</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_CASTILLALAMANCHA5.png" /></td><td>CASTILLA-LA MANCHA</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_CATALUÑA6.png" /></td><td>CATALUÑA</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_CEUTA7.png" /></td><td>CEUTA</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_COMUNIDADBALEAR8.png" /></td><td>COMUNIDAD BALEAR</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_COMUNIDADCANARIA9.png" /></td><td>COMUNIDAD CANARIA</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_EXTREMADURA10.png" /></td><td>EXTREMADURA</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_GALICIA11.png" /></td><td>GALICIA</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_LARIOJA12.png" /></td><td>LA RIOJA</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_MADRID13.png" /></td><td>MADRID</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_MELILLA14.png" /></td><td>MELILLA</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_NAVARRA15.png" /></td><td>NAVARRA</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_PAISVALENCIANO16.png" /></td><td>PAIS VALENCIANO</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_PAISVASCO17.png" /></td><td>PAIS VASCO</td></tr><tr><td style="text-align: center;"><img src="legend/Comunidades_1_REGIONDEMURCIA18.png" /></td><td>REGION DE MURCIA</td></tr></table>', layer: layer_Comunidades_1},]},
+            {label: "Ortoimagen", layer: layer_Ortoimagen_0},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: false, 
+        });
+        lay.addTo(map);
+		document.addEventListener("DOMContentLoaded", function() {
+            // set new Layers List height which considers toggle icon
+            function newLayersListHeight() {
+                var layerScrollbarElement = document.querySelector('.leaflet-control-layers-scrollbar');
+                if (layerScrollbarElement) {
+                    var layersListElement = document.querySelector('.leaflet-control-layers-list');
+                    var originalHeight = layersListElement.style.height 
+                        || window.getComputedStyle(layersListElement).height;
+                    var newHeight = parseFloat(originalHeight) - 50;
+                    layersListElement.style.height = newHeight + 'px';
+                }
+            }
+            var isLayersListExpanded = true;
+            var controlLayersElement = document.querySelector('.leaflet-control-layers');
+            var toggleLayerControl = document.querySelector('.leaflet-control-layers-toggle');
+            // toggle Collapsed/Expanded and apply new Layers List height
+            toggleLayerControl.addEventListener('click', function() {
+                if (isLayersListExpanded) {
+                    controlLayersElement.classList.remove('leaflet-control-layers-expanded');
+                } else {
+                    controlLayersElement.classList.add('leaflet-control-layers-expanded');
+                }
+                isLayersListExpanded = !isLayersListExpanded;
+                newLayersListHeight()
+            });	
+			// apply new Layers List height if toggle layerstree
+			if (controlLayersElement) {
+				controlLayersElement.addEventListener('click', function(event) {
+					var toggleLayerHeaderPointer = event.target.closest('.leaflet-layerstree-header-pointer span');
+					if (toggleLayerHeaderPointer) {
+						newLayersListHeight();
+					}
+				});
+			}
+            // Collapsed/Expanded at Start to apply new height
+            setTimeout(function() {
+                toggleLayerControl.click();
+            }, 10);
+            setTimeout(function() {
+                toggleLayerControl.click();
+            }, 10);
+            // Collapsed touch/small screen
+            var isSmallScreen = window.innerWidth < 650;
+            if (isSmallScreen) {
+                setTimeout(function() {
+                    controlLayersElement.classList.remove('leaflet-control-layers-expanded');
+                    isLayersListExpanded = !isLayersListExpanded;
+                }, 500);
+            }  
+        });       
+        setBounds();
+        var i = 0;
+        layer_Comunidades_1.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['COMUNIDAD'] !== null?String('<div style="color: #323232; font-size: 6pt; font-family: \'Arial\', sans-serif;">' + layer.feature.properties['COMUNIDAD']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_Comunidades_1'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        map.addControl(new L.Control.Search({
+            layer: layer_Comunidades_1,
+            initial: false,
+            hideMarkerOnCollapse: true,
+            propertyName: 'Name'}));
+        document.getElementsByClassName('search-button')[0].className +=
+         ' fa fa-binoculars';
+        var mapDiv = document.getElementById('map');
+        var row = document.createElement('div');
+        row.className="row";
+        row.id="all";
+        row.style.height = "100%";
+        var col1 = document.createElement('div');
+        col1.className="col9";
+        col1.id = "mapWindow";
+        col1.style.height = "99%";
+        col1.style.width = "80%";
+        col1.style.display = "inline-block";
+        var col2 = document.createElement('div');
+        col2.className="col3";
+        col2.id = "menu";
+        col2.style.display = "inline-block";
+        mapDiv.parentNode.insertBefore(row, mapDiv);
+        document.getElementById("all").appendChild(col1);
+        document.getElementById("all").appendChild(col2);
+        col1.appendChild(mapDiv)
+        var Filters = {"NOMBRE": "str","Texto": "str","COMUNIDAD": "str"};
+        function filterFunc() {
+          map.eachLayer(function(lyr){
+          if ("options" in lyr && "dataVar" in lyr["options"]){
+            features = this[lyr["options"]["dataVar"]].features.slice(0);
+            try{
+              for (key in Filters){
+                keyS = key.replace(/[^a-zA-Z0-9_]/g, "")
+                if (Filters[key] == "str" || Filters[key] == "bool"){
+                  var selection = [];
+                  var options = document.getElementById("sel_" + keyS).options
+                  for (var i=0; i < options.length; i++) {
+                    if (options[i].selected) selection.push(options[i].value);
+                  }
+                    try{
+                      if (key in features[0].properties){
+                        for (i = features.length - 1;
+                          i >= 0; --i){
+                          if (selection.indexOf(
+                          features[i].properties[key])<0
+                          && selection.length>0) {
+                          features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                  }
+                }
+                if (Filters[key] == "int"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (parseInt(features[i].properties[key])
+                          < sliderVals[0]
+                          || parseInt(features[i].properties[key])
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "real"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (features[i].properties[key]
+                          < sliderVals[0]
+                          || features[i].properties[key]
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "date"
+                  || Filters[key] == "datetime"
+                  || Filters[key] == "time"){
+                  try{
+                    if (key in features[0].properties){
+                      HTMLkey = key.replace(/[&\/\\#,+()$~%.'":*?<>{} ]/g, '');
+                      startdate = document.getElementById("dat_" +
+                        HTMLkey + "_date1").value.replace(" ", "T");
+                      enddate = document.getElementById("dat_" +
+                        HTMLkey + "_date2").value.replace(" ", "T");
+                      for (i = features.length - 1; i >= 0; --i){
+                        if (features[i].properties[key] < startdate
+                          || features[i].properties[key] > enddate){
+                          features.splice(i,1);
+                        }
+                      }
+                    }
+                  } catch(err){
+                  }
+                }
+              }
+            } catch(err){
+            }
+          this[lyr["options"]["layerName"]].clearLayers();
+          this[lyr["options"]["layerName"]].addData(features);
+        var i = 0;
+        layer_Comunidades_1.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['COMUNIDAD'] !== null?String('<div style="color: #323232; font-size: 6pt; font-family: \'Arial\', sans-serif;">' + layer.feature.properties['COMUNIDAD']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_Comunidades_1'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+          }
+          })
+        }
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_NOMBRE = document.createElement('div');
+            div_NOMBRE.id = "div_NOMBRE";
+            div_NOMBRE.className= "filterselect";
+            document.getElementById("menu").appendChild(div_NOMBRE);
+            sel_NOMBRE = document.createElement('select');
+            sel_NOMBRE.multiple = true;
+            sel_NOMBRE.size = 10;
+            sel_NOMBRE.id = "sel_NOMBRE";
+            var NOMBRE_options_str = "<option value='' unselected></option>";
+            sel_NOMBRE.onchange = function(){filterFunc()};
+            NOMBRE_options_str  += '<option value="Aiako-Harria">Aiako-Harria</option>';
+            NOMBRE_options_str  += '<option value="Aiguamolls de l&apos; Empordá">Aiguamolls de l&apos; Empordá</option>';
+            NOMBRE_options_str  += '<option value="Aizkorri-Aratz">Aizkorri-Aratz</option>';
+            NOMBRE_options_str  += '<option value="Alt Pirineu">Alt Pirineu</option>';
+            NOMBRE_options_str  += '<option value="Alto Tajo">Alto Tajo</option>';
+            NOMBRE_options_str  += '<option value="Aralar">Aralar</option>';
+            NOMBRE_options_str  += '<option value="Armañón">Armañón</option>';
+            NOMBRE_options_str  += '<option value="Arribes del Duero">Arribes del Duero</option>';
+            NOMBRE_options_str  += '<option value="Bahía de Cádiz">Bahía de Cádiz</option>';
+            NOMBRE_options_str  += '<option value="Baixa Limia-Serra do Xurés">Baixa Limia-Serra do Xurés</option>';
+            NOMBRE_options_str  += '<option value="Bardenas Reales">Bardenas Reales</option>';
+            NOMBRE_options_str  += '<option value="Barranco del Río Dulce">Barranco del Río Dulce</option>';
+            NOMBRE_options_str  += '<option value="Cabo Cope-Puntas de Calnegre">Cabo Cope-Puntas de Calnegre</option>';
+            NOMBRE_options_str  += '<option value="Cabo de Gata-NÃ­jar">Cabo de Gata-NÃ­jar</option>';
+            NOMBRE_options_str  += '<option value="Cadí­-Moixeró">Cadí­-Moixeró</option>';
+            NOMBRE_options_str  += '<option value="Calares del Mundo y de la Sima">Calares del Mundo y de la Sima</option>';
+            NOMBRE_options_str  += '<option value="Calblanque, Monte de Las Cenizas y Peña del Águila">Calblanque, Monte de Las Cenizas y Peña del Águila</option>';
+            NOMBRE_options_str  += '<option value="Cap de Creus">Cap de Creus</option>';
+            NOMBRE_options_str  += '<option value="Carrascal de la Font Roja">Carrascal de la Font Roja</option>';
+            NOMBRE_options_str  += '<option value="Carrascoy y El Valle">Carrascoy y El Valle</option>';
+            NOMBRE_options_str  += '<option value="Cañón del Río Lobos">Cañón del Río Lobos</option>';
+            NOMBRE_options_str  += '<option value="Chera-Sot de Chera">Chera-Sot de Chera</option>';
+            NOMBRE_options_str  += '<option value="Collados del Asón">Collados del Asón</option>';
+            NOMBRE_options_str  += '<option value="Complexo Dunar de Corrubedo e Lagoas de Carregal e Vixán">Complexo Dunar de Corrubedo e Lagoas de Carregal e Vixán</option>';
+            NOMBRE_options_str  += '<option value="Cornalvo">Cornalvo</option>';
+            NOMBRE_options_str  += '<option value="Cuenca Alta del Manzanares">Cuenca Alta del Manzanares</option>';
+            NOMBRE_options_str  += '<option value="Curso Medio del Río Guadarrama y su entorno">Curso Medio del Río Guadarrama y su entorno</option>';
+            NOMBRE_options_str  += '<option value="Del Estrecho">Del Estrecho</option>';
+            NOMBRE_options_str  += '<option value="Delta de l&apos;Ebre">Delta de l&apos;Ebre</option>';
+            NOMBRE_options_str  += '<option value="Despeñaperros">Despeñaperros</option>';
+            NOMBRE_options_str  += '<option value="Doñana">Doñana</option>';
+            NOMBRE_options_str  += '<option value="Dunas de Liencres">Dunas de Liencres</option>';
+            NOMBRE_options_str  += '<option value="El Fondo/El Hondo">El Fondo/El Hondo</option>';
+            NOMBRE_options_str  += '<option value="El Montgó">El Montgó</option>';
+            NOMBRE_options_str  += '<option value="En torno a los ejes de los cursos bajos de los ríos Manzanares y Jarama">En torno a los ejes de los cursos bajos de los ríos Manzanares y Jarama</option>';
+            NOMBRE_options_str  += '<option value="Fragas do Eume">Fragas do Eume</option>';
+            NOMBRE_options_str  += '<option value="Fuentes Carrionas y Fuente Cobre - Montaña Palentina">Fuentes Carrionas y Fuente Cobre - Montaña Palentina</option>';
+            NOMBRE_options_str  += '<option value="Fuentes del Narcea, Degaña e Ibias">Fuentes del Narcea, Degaña e Ibias</option>';
+            NOMBRE_options_str  += '<option value="Gorbeia">Gorbeia</option>';
+            NOMBRE_options_str  += '<option value="Hoces del Alto Ebro y Rudrón">Hoces del Alto Ebro y Rudrón</option>';
+            NOMBRE_options_str  += '<option value="Hoces del Cabriel">Hoces del Cabriel</option>';
+            NOMBRE_options_str  += '<option value="Hoces del Río Riaza">Hoces del Río Riaza</option>';
+            NOMBRE_options_str  += '<option value="Hoces del Ríoo Duratón">Hoces del Ríoo Duratón</option>';
+            NOMBRE_options_str  += '<option value="Izki">Izki</option>';
+            NOMBRE_options_str  += '<option value="L&apos;Albufera">L&apos;Albufera</option>';
+            NOMBRE_options_str  += '<option value="La Breña y Marismas del Barbate">La Breña y Marismas del Barbate</option>';
+            NOMBRE_options_str  += '<option value="La Sierra y Cañones de Guara">La Sierra y Cañones de Guara</option>';
+            NOMBRE_options_str  += '<option value="Lago de Sanabria y alrededores">Lago de Sanabria y alrededores</option>';
+            NOMBRE_options_str  += '<option value="Laguna Negra y Circos Glaciares de  Urbión">Laguna Negra y Circos Glaciares de  Urbión</option>';
+            NOMBRE_options_str  += '<option value="Lagunas Glaciares de Neila">Lagunas Glaciares de Neila</option>';
+            NOMBRE_options_str  += '<option value="Lagunas de la Mata y Torrevieja">Lagunas de la Mata y Torrevieja</option>';
+            NOMBRE_options_str  += '<option value="Las Batuecas - Sierra de Francia">Las Batuecas - Sierra de Francia</option>';
+            NOMBRE_options_str  += '<option value="Las Lagunas de Ruidera">Las Lagunas de Ruidera</option>';
+            NOMBRE_options_str  += '<option value="Las Ubiñas y de la Mesa">Las Ubiñas y de la Mesa</option>';
+            NOMBRE_options_str  += '<option value="Los Alcornocales">Los Alcornocales</option>';
+            NOMBRE_options_str  += '<option value="Marismas de Santoña, Victoria y Joyel">Marismas de Santoña, Victoria y Joyel</option>';
+            NOMBRE_options_str  += '<option value="Marjal de Pego-Oliva">Marjal de Pego-Oliva</option>';
+            NOMBRE_options_str  += '<option value="Massís de Sant Llorent del Munt i la Serra de l&apos;Obac">Massís de Sant Llorent del Munt i la Serra de l&apos;Obac</option>';
+            NOMBRE_options_str  += '<option value="Massís del Montseny">Massís del Montseny</option>';
+            NOMBRE_options_str  += '<option value="Moncayo">Moncayo</option>';
+            NOMBRE_options_str  += '<option value="Mondragó">Mondragó</option>';
+            NOMBRE_options_str  += '<option value="Monte Aloia">Monte Aloia</option>';
+            NOMBRE_options_str  += '<option value="Montes Obarenes-San Zadornil">Montes Obarenes-San Zadornil</option>';
+            NOMBRE_options_str  += '<option value="Montes de Má¡laga">Montes de Má¡laga</option>';
+            NOMBRE_options_str  += '<option value="Montgrí­, les Illes Medes i el Baix Ter">Montgrí­, les Illes Medes i el Baix Ter</option>';
+            NOMBRE_options_str  += '<option value="Muntanya de Montserrat">Muntanya de Montserrat</option>';
+            NOMBRE_options_str  += '<option value="O Invernadeiro">O Invernadeiro</option>';
+            NOMBRE_options_str  += '<option value="Oyambre">Oyambre</option>';
+            NOMBRE_options_str  += '<option value="Pagoeta">Pagoeta</option>';
+            NOMBRE_options_str  += '<option value="Penyagolosa">Penyagolosa</option>';
+            NOMBRE_options_str  += '<option value="Penyal d&apos; Ifac / Peñón de Ifac">Penyal d&apos; Ifac / Peñón de Ifac</option>';
+            NOMBRE_options_str  += '<option value="Península de Llevant">Península de Llevant</option>';
+            NOMBRE_options_str  += '<option value="Picos de Europa">Picos de Europa</option>';
+            NOMBRE_options_str  += '<option value="Ponga">Ponga</option>';
+            NOMBRE_options_str  += '<option value="Ports, els">Ports, els</option>';
+            NOMBRE_options_str  += '<option value="Posets-Maladeta">Posets-Maladeta</option>';
+            NOMBRE_options_str  += '<option value="Prat de Cabanes-Torreblanca">Prat de Cabanes-Torreblanca</option>';
+            NOMBRE_options_str  += '<option value="Puebla de San Miguel">Puebla de San Miguel</option>';
+            NOMBRE_options_str  += '<option value="Redes">Redes</option>';
+            NOMBRE_options_str  += '<option value="Sa Albufera de Mallorca">Sa Albufera de Mallorca</option>';
+            NOMBRE_options_str  += '<option value="Sa Dragonera">Sa Dragonera</option>';
+            NOMBRE_options_str  += '<option value="Saja-Besaya">Saja-Besaya</option>';
+            NOMBRE_options_str  += '<option value="Salinas y Arenales de San Pedro del Pinatar">Salinas y Arenales de San Pedro del Pinatar</option>';
+            NOMBRE_options_str  += '<option value="Salines de Santa Pola">Salines de Santa Pola</option>';
+            NOMBRE_options_str  += '<option value="Serra Gelada i el seu entorn litoral">Serra Gelada i el seu entorn litoral</option>';
+            NOMBRE_options_str  += '<option value="Serra da Enciña da Lastra">Serra da Enciña da Lastra</option>';
+            NOMBRE_options_str  += '<option value="Serra de Collserola">Serra de Collserola</option>';
+            NOMBRE_options_str  += '<option value="Serra del Montsant">Serra del Montsant</option>';
+            NOMBRE_options_str  += '<option value="Serranía de Cuenca">Serranía de Cuenca</option>';
+            NOMBRE_options_str  += '<option value="Ses Salines d&apos;Eivissa i Formentera">Ses Salines d&apos;Eivissa i Formentera</option>';
+            NOMBRE_options_str  += '<option value="Señorio de Bertiz">Señorio de Bertiz</option>';
+            NOMBRE_options_str  += '<option value="Sierra Calderona">Sierra Calderona</option>';
+            NOMBRE_options_str  += '<option value="Sierra Espadá/Espadán">Sierra Espadá/Espadán</option>';
+            NOMBRE_options_str  += '<option value="Sierra Espuña">Sierra Espuña</option>';
+            NOMBRE_options_str  += '<option value="Sierra Mariola">Sierra Mariola</option>';
+            NOMBRE_options_str  += '<option value="Sierra Mágina">Sierra Mágina</option>';
+            NOMBRE_options_str  += '<option value="Sierra Nevada">Sierra Nevada</option>';
+            NOMBRE_options_str  += '<option value="Sierra Norte de Guadalajara">Sierra Norte de Guadalajara</option>';
+            NOMBRE_options_str  += '<option value="Sierra Norte de Guadarrama">Sierra Norte de Guadarrama</option>';
+            NOMBRE_options_str  += '<option value="Sierra Norte de Sevilla">Sierra Norte de Sevilla</option>';
+            NOMBRE_options_str  += '<option value="Sierra de Andújar">Sierra de Andújar</option>';
+            NOMBRE_options_str  += '<option value="Sierra de Aracena y Picos de Aroche">Sierra de Aracena y Picos de Aroche</option>';
+            NOMBRE_options_str  += '<option value="Sierra de Baza">Sierra de Baza</option>';
+            NOMBRE_options_str  += '<option value="Sierra de Cardeña y Montoro">Sierra de Cardeña y Montoro</option>';
+            NOMBRE_options_str  += '<option value="Sierra de Castril">Sierra de Castril</option>';
+            NOMBRE_options_str  += '<option value="Sierra de Cebollera">Sierra de Cebollera</option>';
+            NOMBRE_options_str  += '<option value="Sierra de El Carche">Sierra de El Carche</option>';
+            NOMBRE_options_str  += '<option value="Sierra de Grazalema">Sierra de Grazalema</option>';
+            NOMBRE_options_str  += '<option value="Sierra de Gredos">Sierra de Gredos</option>';
+            NOMBRE_options_str  += '<option value="Sierra de Hornachuelos">Sierra de Hornachuelos</option>';
+            NOMBRE_options_str  += '<option value="Sierra de Huétor">Sierra de Huétor</option>';
+            NOMBRE_options_str  += '<option value="Sierra de Irta">Sierra de Irta</option>';
+            NOMBRE_options_str  += '<option value="Sierra de La Pila">Sierra de La Pila</option>';
+            NOMBRE_options_str  += '<option value="Sierra de María-Los Vélez">Sierra de María-Los Vélez</option>';
+            NOMBRE_options_str  += '<option value="Sierra de las Nieves">Sierra de las Nieves</option>';
+            NOMBRE_options_str  += '<option value="Sierras Subbéticas">Sierras Subbéticas</option>';
+            NOMBRE_options_str  += '<option value="Sierras de Alhama, Tejeda y Almijara">Sierras de Alhama, Tejeda y Almijara</option>';
+            NOMBRE_options_str  += '<option value="Sierras de Cazorla, Segura y las Villas">Sierras de Cazorla, Segura y las Villas</option>';
+            NOMBRE_options_str  += '<option value="Sierras de Urbasa y Andía">Sierras de Urbasa y Andía</option>';
+            NOMBRE_options_str  += '<option value="Somiedo">Somiedo</option>';
+            NOMBRE_options_str  += '<option value="Tajo Internacional">Tajo Internacional</option>';
+            NOMBRE_options_str  += '<option value="Tinença de Benifassá">Tinença de Benifassá</option>';
+            NOMBRE_options_str  += '<option value="Turia">Turia</option>';
+            NOMBRE_options_str  += '<option value="Urdaibai">Urdaibai</option>';
+            NOMBRE_options_str  += '<option value="Urkiola">Urkiola</option>';
+            NOMBRE_options_str  += '<option value="Valderejo">Valderejo</option>';
+            NOMBRE_options_str  += '<option value="Valle de Alcudia y Sierra Madrona">Valle de Alcudia y Sierra Madrona</option>';
+            NOMBRE_options_str  += '<option value="Valles Occidentales">Valles Occidentales</option>';
+            NOMBRE_options_str  += '<option value="Zona Volcánica de la Garrotxa">Zona Volcánica de la Garrotxa</option>';
+            NOMBRE_options_str  += '<option value="s&apos;Albufera des Grau">s&apos;Albufera des Grau</option>';
+            sel_NOMBRE.innerHTML = NOMBRE_options_str;
+            div_NOMBRE.appendChild(sel_NOMBRE);
+            var lab_NOMBRE = document.createElement('div');
+            lab_NOMBRE.innerHTML = 'NOMBRE';
+            lab_NOMBRE.className = 'filterlabel';
+            div_NOMBRE.appendChild(lab_NOMBRE);
+            var reset_NOMBRE = document.createElement('div');
+            reset_NOMBRE.innerHTML = 'clear filter';
+            reset_NOMBRE.className = 'filterlabel';
+            reset_NOMBRE.onclick = function() {
+                var options = document.getElementById("sel_NOMBRE").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_NOMBRE.appendChild(reset_NOMBRE);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_Texto = document.createElement('div');
+            div_Texto.id = "div_Texto";
+            div_Texto.className= "filterselect";
+            document.getElementById("menu").appendChild(div_Texto);
+            sel_Texto = document.createElement('select');
+            sel_Texto.multiple = true;
+            sel_Texto.size = 8;
+            sel_Texto.id = "sel_Texto";
+            var Texto_options_str = "<option value='' unselected></option>";
+            sel_Texto.onchange = function(){filterFunc()};
+            Texto_options_str  += '<option value="Río Duero">Río Duero</option>';
+            Texto_options_str  += '<option value="Río Ebro">Río Ebro</option>';
+            Texto_options_str  += '<option value="Río Guadalquivir">Río Guadalquivir</option>';
+            Texto_options_str  += '<option value="Río Guadiana">Río Guadiana</option>';
+            Texto_options_str  += '<option value="Río Júcar">Río Júcar</option>';
+            Texto_options_str  += '<option value="Río Miño">Río Miño</option>';
+            Texto_options_str  += '<option value="Río Segura">Río Segura</option>';
+            Texto_options_str  += '<option value="Río Tajo">Río Tajo</option>';
+            sel_Texto.innerHTML = Texto_options_str;
+            div_Texto.appendChild(sel_Texto);
+            var lab_Texto = document.createElement('div');
+            lab_Texto.innerHTML = 'Texto';
+            lab_Texto.className = 'filterlabel';
+            div_Texto.appendChild(lab_Texto);
+            var reset_Texto = document.createElement('div');
+            reset_Texto.innerHTML = 'clear filter';
+            reset_Texto.className = 'filterlabel';
+            reset_Texto.onclick = function() {
+                var options = document.getElementById("sel_Texto").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_Texto.appendChild(reset_Texto);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_COMUNIDAD = document.createElement('div');
+            div_COMUNIDAD.id = "div_COMUNIDAD";
+            div_COMUNIDAD.className= "filterselect";
+            document.getElementById("menu").appendChild(div_COMUNIDAD);
+            sel_COMUNIDAD = document.createElement('select');
+            sel_COMUNIDAD.multiple = true;
+            sel_COMUNIDAD.size = 10;
+            sel_COMUNIDAD.id = "sel_COMUNIDAD";
+            var COMUNIDAD_options_str = "<option value='' unselected></option>";
+            sel_COMUNIDAD.onchange = function(){filterFunc()};
+            COMUNIDAD_options_str  += '<option value="ANDALUCIA">ANDALUCIA</option>';
+            COMUNIDAD_options_str  += '<option value="ARAGON">ARAGON</option>';
+            COMUNIDAD_options_str  += '<option value="ASTURIAS">ASTURIAS</option>';
+            COMUNIDAD_options_str  += '<option value="CANTABRIA">CANTABRIA</option>';
+            COMUNIDAD_options_str  += '<option value="CASTILLA Y LEON">CASTILLA Y LEON</option>';
+            COMUNIDAD_options_str  += '<option value="CASTILLA-LA MANCHA">CASTILLA-LA MANCHA</option>';
+            COMUNIDAD_options_str  += '<option value="CATALUÑA">CATALUÑA</option>';
+            COMUNIDAD_options_str  += '<option value="CEUTA">CEUTA</option>';
+            COMUNIDAD_options_str  += '<option value="COMUNIDAD BALEAR">COMUNIDAD BALEAR</option>';
+            COMUNIDAD_options_str  += '<option value="COMUNIDAD CANARIA">COMUNIDAD CANARIA</option>';
+            COMUNIDAD_options_str  += '<option value="EXTREMADURA">EXTREMADURA</option>';
+            COMUNIDAD_options_str  += '<option value="GALICIA">GALICIA</option>';
+            COMUNIDAD_options_str  += '<option value="LA RIOJA">LA RIOJA</option>';
+            COMUNIDAD_options_str  += '<option value="MADRID">MADRID</option>';
+            COMUNIDAD_options_str  += '<option value="MELILLA">MELILLA</option>';
+            COMUNIDAD_options_str  += '<option value="NAVARRA">NAVARRA</option>';
+            COMUNIDAD_options_str  += '<option value="PAIS VALENCIANO">PAIS VALENCIANO</option>';
+            COMUNIDAD_options_str  += '<option value="PAIS VASCO">PAIS VASCO</option>';
+            COMUNIDAD_options_str  += '<option value="REGION DE MURCIA">REGION DE MURCIA</option>';
+            sel_COMUNIDAD.innerHTML = COMUNIDAD_options_str;
+            div_COMUNIDAD.appendChild(sel_COMUNIDAD);
+            var lab_COMUNIDAD = document.createElement('div');
+            lab_COMUNIDAD.innerHTML = 'COMUNIDAD';
+            lab_COMUNIDAD.className = 'filterlabel';
+            div_COMUNIDAD.appendChild(lab_COMUNIDAD);
+            var reset_COMUNIDAD = document.createElement('div');
+            reset_COMUNIDAD.innerHTML = 'clear filter';
+            reset_COMUNIDAD.className = 'filterlabel';
+            reset_COMUNIDAD.onclick = function() {
+                var options = document.getElementById("sel_COMUNIDAD").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_COMUNIDAD.appendChild(reset_COMUNIDAD);
+        resetLabels([layer_Comunidades_1]);
+        map.on("zoomend", function(){
+            resetLabels([layer_Comunidades_1]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_Comunidades_1]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_Comunidades_1]);
+        });
+        </script>
+    </body>
+</html>
