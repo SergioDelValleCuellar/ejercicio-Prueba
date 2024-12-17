@@ -1,2 +1,2 @@
-# ejercicio-Prueba o no
+# ejercicio-Prueba
 
